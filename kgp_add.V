@@ -1,4 +1,4 @@
-`include "four_1_mux.v"
+
 
 module kgp_add(i1,i2,sum);
 input [7:0] i1;
@@ -94,17 +94,10 @@ begin
             end
 
         else 
+        begin
             sum[8]=kgp3[15];
+        end
 end
-
-
-
-
-
-
-
-
-
 
 
 endmodule

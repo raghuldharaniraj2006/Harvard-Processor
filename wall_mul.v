@@ -1,7 +1,7 @@
 `include "partial_product.v"
 `include "half_addr.v"
 `include "full_addr.v"
-`include "kgp_add.v"
+
 
 
 module wall_mul(in1,in2,mul);

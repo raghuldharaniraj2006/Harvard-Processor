@@ -1,4 +1,5 @@
-`include "four_1_mux.v"
+
+
 
 module kgp_sub(i1,i2,sub);
 input [7:0] i1;
@@ -81,7 +82,7 @@ begin
         sub[6] = i1[6] ^ I2[6] ^ kgp4[6];
         sub[7] = i1[7] ^ I2[7] ^ kgp4[7];
 
-        if (i1 < i2)  sub = (~sub) + 1;
+       
 
 
 

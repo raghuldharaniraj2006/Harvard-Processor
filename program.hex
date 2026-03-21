@@ -1,0 +1,3 @@
+0020002D // Step 0: MOV R1, #45  (Hex 2D is 45)
+0040000A // Step 1: MOV R2, #10  (Hex 0A is 10)
+10220000 // Step 2: ADD R1, R2, R1 (R1 = 45 + 10 = 55)

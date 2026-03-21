@@ -1,28 +1,32 @@
-module fetch_unit(clk,rst,tb_instruction,view_addr,out_instruction,pc_out);
-input clk,rst;
-input [31:0] tb_instruction;
-input [5:0] view_addr;
-output [31:0] out_instruction;
-output [5:0] pc_out;
+module fetch_unit(
+    input clk,
+    input rst,
+    input [31:0] instr_in,       
+    input write_enable,           
+    input [5:0] read_addr,        
+    output [31:0] instr_out       
+);
 
-reg [31:0] instn_mem [63:0];
-reg [5:0] pc;
+    // Instruction Memory (64 x 32-bit)
+    reg [31:0] instr_mem [0:63];
 
-always @ (posedge clk)
-begin
-    if(rst)
-        pc <= 0;
-    else
-        begin
-            pc <= pc + 1'b1;
-            instn_mem[pc] <= tb_instruction;
+    // 6-bit counter
+    reg [5:0] counter;
 
-        end
+    // Counter logic
+    always @(posedge clk or posedge rst) begin
+        if(rst)
+            counter <= 6'd0;
+        else if(write_enable)
+            counter <= counter + 1'b1;
+    end
 
-end
-
-assign pc_out = pc;
-
-assign out_instruction = instn_mem[view_addr];
+    always @(posedge clk) begin
+        if(write_enable)
+            instr_mem[counter] <= instr_in;
+    end
+    
+    // Read instruction using given address
+    assign instr_out = instr_mem[read_addr];
 
 endmodule

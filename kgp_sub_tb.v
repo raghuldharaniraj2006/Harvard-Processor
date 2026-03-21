@@ -21,7 +21,7 @@ $monitor("TIME= %0t  number1 = %d     number2 = %d     sub=%d",$time,i1,i2,sub);
     i1=8'hFF;
     i2=8'hFF;
 
-#10 $finish;
+#10 $finish;  
 
 
 
