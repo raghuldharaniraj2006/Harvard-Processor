@@ -1,210 +1,99 @@
-# Harvard Architecture 8-bit Processor (Verilog)
+# Harvard Architecture 8-bit Processor Design
 
 ## Overview
+This project implements a custom **8-bit Harvard Architecture Processor** designed with Verilog HDL. The processor features separate instruction and data memory spaces, a 32-entry register file, and a high-performance ALU optimized for fixed-point arithmetic and logical operations.
 
-This project implements a **custom 8-bit Harvard Architecture Processor** using **Verilog HDL**.
-The processor features separate **instruction memory and data memory**, a **32-register file**, and an **8-bit ALU capable of arithmetic, logical, and shift operations**.
-
-The processor executes **32-bit instructions** and supports a variety of operations including **data movement, arithmetic, logic, multiplication, division, and memory access**.
-
-The design was developed and simulated using the **Cadence VLSI toolchain**.
+The design focuses on a single-cycle execution model where 32-bit instructions are fetched and processed to manipulate 8-bit data.
 
 ---
 
-# Processor Specifications
+## Processor Architecture
+The following diagram illustrates the data path and control flow of the 8-bit Harvard Processor, featuring the separate memory buses and the central ALU.
 
-| Feature            | Specification             |
-| ------------------ | ------------------------- |
-| Architecture       | Harvard Architecture      |
-| Instruction Width  | 32-bit                    |
-| Register File      | 32 registers (8-bit each) |
-| Data Memory        | 256 locations (8-bit)     |
-| Instruction Memory | 64 locations (32-bit)     |
-| Program Counter    | 6-bit                     |
-| ALU Width          | 8-bit                     |
-| Core               | Single Core               |
+![8-bit Harvard Processor Architecture](./images/architecture.png)
 
 ---
 
-# Processor Architecture
-
-![Processor Architecture](docs/architecture.png)
-
-The processor consists of the following major components:
-
-* **Program Counter (PC)** – Generates instruction addresses.
-* **Instruction Memory** – Stores 64 instructions (32-bit each).
-* **Decode Unit** – Decodes opcode and extracts register operands.
-* **Register File** – 32 registers each of 8 bits.
-* **ALU** – Performs arithmetic and logical operations.
-* **Data Memory** – 256 memory locations for load/store operations.
-* **Writeback Unit** – Writes computation results back to registers.
+## Processor Specifications
+| Feature | Specification |
+| :--- | :--- |
+| **Architecture** | Harvard Architecture (Separate Bus for Instructions/Data) |
+| **Data Width** | 8-bit |
+| **Instruction Width** | 32-bit |
+| **Register File** | 32 General Purpose 8-bit Registers (R0 to R31) |
+| **Instruction Memory** | 64 locations (64 x 32-bits) |
+| **Data Memory** | 256 locations (256 x 8-bits) |
+| **Program Counter** | 6-bit |
 
 ---
 
-# Instruction Format
+## Modular Components
+The processor consists of several modular blocks integrated to form the Harvard pipeline:
 
-![Instruction Format](docs/instruction_format.png)
-
-The processor supports multiple instruction formats depending on the operation type:
-
-### Immediate Instruction
-
-```
-Opcode (6) | Rdst (5) | Reserved (13) | Immediate (8)
-```
-
-### Register Move
-
-```
-Opcode (6) | Rdst (5) | Reserved (16) | Rsrc (5)
-```
-
-### Load Instruction
-
-```
-Opcode (6) | Rdst (5) | Reserved (13) | Src Address (8)
-```
-
-### Store Instruction
-
-```
-Opcode (6) | Dst Address (8) | Reserved (13) | Rsrc (5)
-```
-
-### Arithmetic / Logic Instructions
-
-```
-Opcode (6) | Rdst2 (5) | Rdst1 (5) | Reserved (6) | Rsrc2 (5) | Rsrc1 (5)
-```
+* **Program Counter (PC):** A 6-bit register that generates addresses for the instruction memory.
+* **Instruction Memory:** Stores the 32-bit wide program instructions.
+* **Decode Unit:** Processes the opcode to generate control signals and identifies operand registers.
+* **Register File:** Provides high-speed storage for 8-bit intermediate operands (R0 to R31).
+* **ALU (Execution Unit):** Performs arithmetic, logic, and shift operations.
+* **Data Memory:** Handles Load and Store operations for persistent data storage.
+* **Write Back Unit:** Ensures computation results are retired correctly to the register file.
 
 ---
 
-# Instruction Set
+## ALU Design Features
+The ALU is the core of the processor and implements specific high-performance hardware algorithms:
 
-![Instruction Set](docs/instruction_set.png)
-
-The processor supports **17 instructions**:
-
-| Opcode | Instruction    | Operation                     |
-| ------ | -------------- | ----------------------------- |
-| 000000 | MOV Rdst, #Imm | Rdst = Immediate              |
-| 000001 | MOV Rdst, Rsrc | Rdst = Rsrc                   |
-| 000010 | LOAD           | Rdst = Memory[address]        |
-| 000011 | STORE          | Memory[address] = Rsrc        |
-| 000100 | ADD            | Rdst = Rsrc2 + Rsrc1          |
-| 000101 | SUB            | Rdst = Rsrc2 − Rsrc1          |
-| 000110 | NEG            | Rdst = −Rsrc1                 |
-| 000111 | MUL            | {Rdst2,Rdst1} = Rsrc2 × Rsrc1 |
-| 001000 | DIV            | Rdst = Rsrc2 / Rsrc1          |
-| 001001 | OR             | Rdst = Rsrc2 OR Rsrc1         |
-| 001010 | XOR            | Rdst = Rsrc2 XOR Rsrc1        |
-| 001011 | NAND           | Rdst = !(Rsrc2 & Rsrc1)       |
-| 001100 | NOR            | Rdst = !(Rsrc2 | Rsrc1)       |
-| 001101 | XNOR           | Rdst = !(Rsrc2 XOR Rsrc1)     |
-| 001110 | NOT            | Rdst = !Rsrc1                 |
-| 001111 | LLSH           | Logical Left Shift            |
-| 010000 | LRSH           | Logical Right Shift           |
+* **Fixed Point Adder/Subtractor:** Uses an 8-bit Carry Lookahead Adder (CLA) utilizing KGP blocks and a **Recursive Doubling algorithm**. Subtraction is handled via 2's complement logic.
+* **Fixed Point Multiplier:** Implemented as an 8-bit **Wallace Tree** or Carry Save Array multiplier using carry-save-adders.
+* **Shifter Unit:** An 8-bit Barrel or Logarithmic shifter supporting both logical left and right shifts.
+* **Logic Unit:** Executes bitwise NOT, AND, OR, NAND, NOR, XOR, and XNOR operations.
 
 ---
 
-# ALU Design
+## Instruction Set Architecture (ISA)
+The processor supports five distinct instruction formats to handle various operations:
 
-The ALU integrates multiple arithmetic and logic units:
+### Instruction Formats
+1. **Immediate Move:** `Opcode(6) | Rdst(5) | Unused(13) | Immediate Value(8)`
+2. **Register Move:** `Opcode(6) | Rdst(5) | Unused(16) | Rsrc(5)`
+3. **Load:** `Opcode(6) | Rdst(5) | Unused(13) | Src Address(8)`
+4. **Store:** `Opcode(6) | Dst Address(8) | Unused(13) | Rsrc(5)`
+5. **Arithmetic/Logic:** `Opcode(6) | Rdst2(5) | Rdst1(5) | Unused(6) | Rsrc2(5) | Rsrc1(5)`
 
-### Carry Lookahead Adder
+## Instruction Set Architecture (ISA) & Opcode Encoding
+The processor supports a 6-bit opcode system with five distinct instruction formats.
 
-Used for fast **8-bit addition and subtraction**.
-
-### Wallace Tree Multiplier
-
-Efficient hardware multiplier used for **8-bit multiplication**.
-
-### Logic Unit
-
-Supports the following operations:
-
-* AND
-* OR
-* XOR
-* NAND
-* NOR
-* XNOR
-* NOT
-
-### Barrel Shifter
-
-Implements:
-
-* Logical Left Shift
-* Logical Right Shift
-
----
-
-# Verilog Modules
-
-The processor is implemented using modular RTL design.
-
-```
-fetch_unit.v
-instruction_memory.v
-decode_unit.v
-register_file.v
-alu.v
-data_memory.v
-writeback_unit.v
-harvard_processor.v
-testbench.v
-```
-
-### Module Responsibilities
-
-| Module             | Function                                           |
-| ------------------ | -------------------------------------------------- |
-| fetch_unit         | Generates program counter and fetches instructions |
-| instruction_memory | Stores program instructions                        |
-| decode_unit        | Decodes opcode and extracts operands               |
-| register_file      | 32 x 8-bit register bank                           |
-| alu                | Arithmetic and logical operations                  |
-| data_memory        | Load and store operations                          |
-| writeback_unit     | Writes results back to register file               |
-| harvard_processor  | Top-level processor integration                    |
-| testbench          | Simulation verification                            |
+| Opcode | Mnemonic | Usage | Operation | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `000000` | **MOV** | `MOV Rdst, #Imm` | $Rdst \leftarrow Imm$ | Move 8-bit immediate value to register. |
+| `000001` | **MOV** | `MOV Rdst, Rsrc` | $Rdst \leftarrow Rsrc$ | Move value from source register to destination. |
+| `000010` | **LOAD** | `LOAD Rdst, [Addr]` | $Rdst \leftarrow Mem[Addr]$ | Load data from memory address to register. |
+| `000011` | **STORE** | `STORE [Addr], Rsrc` | $Mem[Addr] \leftarrow Rsrc$ | Store register value into data memory. |
+| `000100` | **ADD** | `ADD Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 + Rsrc1$ | 8-bit fixed-point addition. |
+| `000101` | **SUB** | `SUB Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 - Rsrc1$ | 8-bit fixed-point subtraction. |
+| `000110` | **NEG** | `NEG Rdst1, Rsrc1` | $Rdst1 \leftarrow -Rsrc1$ | 2's complement negation. |
+| `000111` | **MUL** | `MUL Rdst2, Rdst1, Rsrc2, Rsrc1` | $\{Rdst2, Rdst1\} \leftarrow Rsrc2 \times Rsrc1$ | 8-bit multiplication (16-bit result). |
+| `001000` | **DIV** | `DIV Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 / Rsrc1$ | 8-bit fixed-point hardware division. |
+| `001001` | **OR** | `OR Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 \mid Rsrc1$ | Bitwise Logical OR. |
+| `001010` | **XOR** | `XOR Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 \oplus Rsrc1$ | Bitwise Logical XOR. |
+| `001011` | **NAND** | `NAND Rdst1, Rsrc2, Rsrc1` | Rdst1 = ~(Rsrc2 & Rsrc1) | Bitwise Logical NAND. |
+| `001100` | **NOR** | `NOR Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow \neg(Rsrc2 \mid Rsrc1)$ | Bitwise Logical NOR. |
+| `001101` | **XNOR** | `XNOR Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow \neg(Rsrc2 \oplus Rsrc1)$ | Bitwise Logical XNOR. |
+| `001110` | **NOT** | `NOT Rdst1, Rsrc1` | $Rdst1 \leftarrow \neg Rsrc1$ | Bitwise Logical NOT. |
+| `001111` | **LLSH** | `LLSH Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 \ll Rsrc1$ | Logical Left Shift. |
+| `010000` | **LRSH** | `LRSH Rdst1, Rsrc2, Rsrc1` | $Rdst1 \leftarrow Rsrc2 \gg Rsrc1$ | Logical Right Shift. |
 
 ---
 
-# Simulation Environment
 
-The processor was designed and simulated using:
 
-* **Cadence Genus** – RTL synthesis
-* **Cadence Innovus** – Physical design
-* **Cadence SimVision** – Simulation and waveform analysis
+## Future Extensions
+* **Pipelining:** Implementing a multi-stage pipeline to increase throughput.
+* **Branching Logic:** Adding Jump (JMP) and Conditional Branch (BEQ, BNE) instructions to support complex program flow.
+* **Interrupt Handling:** Integrating a basic interrupt controller for asynchronous hardware communication.
+* **FPGA Implementation:** Porting the Verilog RTL to Xilinx or Altera FPGAs for hardware validation.
 
----
-
-# Future Improvements
-
-Possible extensions to the processor include:
-
-* Pipeline architecture
-* Hazard detection
-* Branch and jump instructions
-* Interrupt handling
-* Cache memory
-* FPGA implementation
-
----
-
-# Author
-
-**Naren**
-ECE Student
-Interest Areas:
-
-* Processor Architecture
-* Digital Design
-* Radar Systems
-* FPGA and SDR Systems
-
----
+## Author
+**Raghul Dharani Raj**
+* ECE Student
+* Interests: Digital VLSI Design, Processor Architecture, and FPGA Design Flow.
