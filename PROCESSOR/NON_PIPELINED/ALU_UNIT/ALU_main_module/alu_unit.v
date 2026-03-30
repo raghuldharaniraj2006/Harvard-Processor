@@ -1,3 +1,9 @@
+`include "wall_mul.v"
+`include "kgp_sub.v"
+`include "four_1_mux.v"
+`include "non_restoring_division_8bit.v"
+`include "right_shift_8_bit_mux_2_1.v"
+`include "left_shift_8_bit_mux_2_1.v"
 
 
 
@@ -30,7 +36,7 @@ module alu_unit (
     
     right_shift_8_bit rs_inst (.in(A), .out(shift_r_out), .s(B[2:0]));
 
-    left_shift_8_bit ls_inst (.in(A), .out(shift_l_out), .s(B[2:0]));
+    left_shift_8_bit ls_inst (.in(A), .out(shift_l_out), .s(B[2:0])); 
 
 
     always @(*) begin

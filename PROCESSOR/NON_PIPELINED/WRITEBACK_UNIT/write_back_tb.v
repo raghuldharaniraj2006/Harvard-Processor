@@ -1,73 +1,117 @@
-`timescale 1ns / 1ps
+`timescale 1ns/1ps
 
-module writeback_unit_tb();
+module writeback_unit_tb;
 
-    // Inputs
-    reg [31:0] instruction;
-    reg [7:0] alu_result;
-    reg [7:0] mem_read_data;
+reg [31:0] instruction;
+reg [7:0] alu_result;
+reg [7:0] mem_data;
+reg [7:0] reg_src_data;
 
-    // Outputs
-    wire [4:0] rf_addr;
-    wire [7:0] mem_addr;
-    wire [7:0] data_out;
-    wire rf_we;
-    wire mem_we;
+wire [7:0] mem_src_addr;
+wire [7:0] data_out;
+wire [4:0] reg_addr;
+wire [7:0] mem_addr;
+wire reg_write_en;
+wire mem_write_en;
 
-    // Instantiate the Unit Under Test (UUT)
-    writeback_unit uut (
-        .instruction(instruction), 
-        .alu_result(alu_result), 
-        .mem_read_data(mem_read_data), 
-        .rf_addr(rf_addr), 
-        .mem_addr(mem_addr), 
-        .data_out(data_out), 
-        .rf_we(rf_we), 
-        .mem_we(mem_we)
+// Instantiate DUT
+writeback_unit uut (
+    .instruction(instruction),
+    .alu_result(alu_result),
+    .mem_data(mem_data),
+    .reg_src_data(reg_src_data),
+
+    .mem_src_addr(mem_src_addr),
+    .data_out(data_out),
+    .reg_addr(reg_addr),
+    .mem_addr(mem_addr),
+
+    .reg_write_en(reg_write_en),
+    .mem_write_en(mem_write_en)
+);
+
+initial begin
+    // Initialize
+    instruction = 0;
+    alu_result = 0;
+    mem_data = 0;
+    reg_src_data = 0;
+
+    #10;
+
+    // -------------------------
+    // MOV Immediate
+    // -------------------------
+    instruction = {6'b000000, 5'd1, 13'd0, 8'hAA};
+    #10;
+
+    // -------------------------
+    // MOV Register
+    // -------------------------
+    reg_src_data = 8'h55;
+    instruction = {6'b000001, 5'd2, 21'd0};
+    #10;
+
+    // -------------------------
+    // LOAD
+    // -------------------------
+    mem_data = 8'hCC;
+    instruction = {6'b000010, 5'd3, 21'd0};
+    #10;
+
+    // -------------------------
+    // STORE
+    // -------------------------
+    alu_result = 8'h99;
+    instruction = {6'b000011, 8'd20, 18'd0};
+    #10;
+
+    // -------------------------
+    // ADD
+    // -------------------------
+    alu_result = 8'h11;
+    instruction = {6'b000100, 5'd4, 21'd0};
+    #10;
+
+    // SUB
+    alu_result = 8'h22;
+    instruction = {6'b000101, 5'd5, 21'd0};
+    #10;
+
+    // MUL
+    alu_result = 8'h33;
+    instruction = {6'b000111, 5'd6, 21'd0};
+    #10;
+
+    // XOR
+    alu_result = 8'h44;
+    instruction = {6'b001010, 5'd7, 21'd0};
+    #10;
+
+    // NOT
+    alu_result = 8'hF0;
+    instruction = {6'b001110, 5'd8, 21'd0};
+    #10;
+
+    // SHIFT
+    alu_result = 8'h0F;
+    instruction = {6'b001111, 5'd9, 21'd0};
+    #10;
+
+    #20 $finish;
+end
+
+// Monitor everything
+initial begin
+    $monitor("Time=%0t | opcode=%b | reg_we=%b | mem_we=%b | reg_addr=%d | mem_addr=%d | data_out=%h",
+        $time,
+        instruction[31:26],
+        reg_write_en,
+        mem_write_en,
+        reg_addr,
+        mem_addr,
+        data_out
     );
+end
 
-    initial begin
-        // Initialize Inputs
-        instruction = 0;
-        alu_result = 8'hA5;      // Mock ALU result
-        mem_read_data = 8'h3C;   // Mock Memory result
-
-        $display("Starting Writeback Unit Test...");
-        $display("Time\t Opcode\t RF_Addr\t RF_WE\t Mem_WE\t Data_Out");
-        $display("------------------------------------------------------------");
-
-        // --- Test 1: MOV Immediate (Opcode 000000) ---
-        // Expect: rf_we=1, data_out=instruction[7:0] (0x77)
-        instruction = {6'b000000, 5'd10, 13'b0, 8'h77}; 
-        #10;
-        $display("%0t\t %b\t %d\t\t %b\t %b\t %h", $time, instruction[31:26], rf_addr, rf_we, mem_we, data_out);
-
-        // --- Test 2: LOAD (Opcode 000010) ---
-        // Expect: rf_we=1, data_out=mem_read_data (0x3C)
-        instruction = {6'b000010, 5'd15, 21'b0}; 
-        #10;
-        $display("%0t\t %b\t %d\t\t %b\t %b\t %h", $time, instruction[31:26], rf_addr, rf_we, mem_we, data_out);
-
-        // --- Test 3: STORE (Opcode 000011) ---
-        // Expect: mem_we=1, data_out=alu_result (0xA5), mem_addr=instruction[25:18]
-        instruction = {6'b000011, 8'hFF, 18'b0}; 
-        #10;
-        $display("%0t\t %b\t --\t\t %b\t %b\t %h (MemAddr: %h)", $time, instruction[31:26], rf_we, mem_we, data_out, mem_addr);
-
-        // --- Test 4: ADD (Opcode 000100) ---
-        // Expect: rf_we=1, data_out=alu_result (0xA5)
-        instruction = {6'b000100, 5'd21, 21'b0}; 
-        #10;
-        $display("%0t\t %b\t %d\t\t %b\t %b\t %h", $time, instruction[31:26], rf_addr, rf_we, mem_we, data_out);
-
-        // --- Test 5: Unknown Opcode ---
-        // Expect: All WE signals 0
-        instruction = {6'b111111, 26'b0}; 
-        #10;
-        $display("%0t\t %b\t --\t\t %b\t %b\t %h", $time, instruction[31:26], rf_we, mem_we, data_out);
-
-        $display("------------------------------------------------------------");
-        $finish;
-    end
-      
 endmodule
